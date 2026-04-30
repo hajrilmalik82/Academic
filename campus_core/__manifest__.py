@@ -17,6 +17,7 @@
         'views/academic_krs_views.xml',
         'views/academic_khs_views.xml',
         'views/academic_class_views.xml',
+        'views/academic_class_schedule_views.xml',
         'views/menus.xml',
     ],
     'installable': True,

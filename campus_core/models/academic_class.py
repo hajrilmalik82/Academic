@@ -1,7 +1,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 import math
+import pytz
 
 
 class AcademicClass(models.Model):
@@ -44,6 +45,9 @@ class AcademicClass(models.Model):
 
         self.session_ids.unlink()
 
+        # Get user's timezone; fall back to UTC if not set
+        user_tz = pytz.timezone(self.env.user.tz or 'UTC')
+
         sessions = []
         for schedule in self.schedule_ids:
             current_date = fields.Date.from_string(self.start_date)
@@ -57,107 +61,30 @@ class AcademicClass(models.Model):
 
             for i in range(14):
                 session_date = first_session_date + timedelta(weeks=i)
-                
-                # Convert float time to datetime
-                start_hour = int(math.floor(schedule.start_time))
+
+                # Extract hours and minutes from Float fields
+                start_hour = int(schedule.start_time)
                 start_minute = int(round((schedule.start_time - start_hour) * 60))
-                end_hour = int(math.floor(schedule.end_time))
+                end_hour = int(schedule.end_time)
                 end_minute = int(round((schedule.end_time - end_hour) * 60))
-                
-                start_dt = fields.Datetime.to_datetime(session_date).replace(
-                    hour=start_hour, minute=start_minute
-                )
-                end_dt = fields.Datetime.to_datetime(session_date).replace(
-                    hour=end_hour, minute=end_minute
-                )
+
+                # Combine date + time as naive local datetime, then convert to UTC
+                local_start_dt = datetime.combine(session_date, time(start_hour, start_minute))
+                local_end_dt = datetime.combine(session_date, time(end_hour, end_minute))
+
+                utc_start_dt = user_tz.localize(local_start_dt).astimezone(pytz.utc).replace(tzinfo=None)
+                utc_end_dt = user_tz.localize(local_end_dt).astimezone(pytz.utc).replace(tzinfo=None)
 
                 sessions.append((0, 0, {
                     'name': f"Session {i+1}: {self.name}",
-                    'start_datetime': start_dt,
-                    'end_datetime': end_dt,
+                    'start_datetime': utc_start_dt,
+                    'end_datetime': utc_end_dt,
                     'room_id': schedule.room_id.id,
                 }))
-        
+
         self.write({'session_ids': sessions})
 
 
-class AcademicClassSchedule(models.Model):
-    _name = 'academic.class.schedule'
-    _description = 'Academic Class Schedule'
-
-    class_id = fields.Many2one('academic.class', string='Class', ondelete='cascade')
-    day_of_week = fields.Selection([
-        ('0', 'Monday'),
-        ('1', 'Tuesday'),
-        ('2', 'Wednesday'),
-        ('3', 'Thursday'),
-        ('4', 'Friday'),
-        ('5', 'Saturday'),
-        ('6', 'Sunday')
-    ], string='Day of Week', required=True)
-    start_time = fields.Float(string='Start Time', required=True)
-    end_time = fields.Float(string='End Time', required=True)
-    room_id = fields.Many2one('campus.room', string='Room', required=True, domain=[('room_type', '=', 'theory')])
-    room_capacity = fields.Integer(related='room_id.capacity', string='Capacity', readonly=True)
-    lecturer_id = fields.Many2one('hr.employee', string='Lecturer')
-    enrolled_count = fields.Integer(string='Enrolled', compute='_compute_capacity_display')
-    capacity_display = fields.Char(string='Capacity (Max/Filled)', compute='_compute_capacity_display')
-
-    @api.depends('room_capacity', 'class_id.student_line_ids.schedule_ids')
-    def _compute_capacity_display(self):
-        for record in self:
-            enrolled = len(record.class_id.student_line_ids.filtered(lambda s: record.id in s.schedule_ids.ids))
-            record.enrolled_count = enrolled
-            record.capacity_display = f"{record.room_capacity} / {enrolled}"
-
-    def _compute_display_name(self):
-        for record in self:
-            day_dict = dict(self._fields['day_of_week'].selection)
-            day_name = day_dict.get(record.day_of_week, '')
-            start = '{0:02d}:{1:02d}'.format(
-                int(record.start_time), int(round((record.start_time % 1) * 60))
-            ) if record.start_time else ''
-            end = '{0:02d}:{1:02d}'.format(
-                int(record.end_time), int(round((record.end_time % 1) * 60))
-            ) if record.end_time else ''
-            record.display_name = f"{day_name} ({start} - {end})"
-
-    @api.constrains('day_of_week', 'start_time', 'end_time', 'room_id', 'lecturer_id', 'class_id')
-    def _check_schedule_overlap(self):
-        for record in self:
-            # Check room overlap
-            domain_room = [
-                ('id', '!=', record.id),
-                ('room_id', '=', record.room_id.id),
-                ('day_of_week', '=', record.day_of_week),
-                ('academic_year_id', '=', record.class_id.academic_year_id.id),
-                ('start_time', '<', record.end_time),
-                ('end_time', '>', record.start_time),
-            ]
-            # Since academic_year_id is on class, we need to join or map
-            # A simpler approach using ORM search:
-            overlap_room = self.search([
-                ('id', '!=', record.id),
-                ('room_id', '=', record.room_id.id),
-                ('day_of_week', '=', record.day_of_week),
-                ('class_id.academic_year_id', '=', record.class_id.academic_year_id.id),
-                ('start_time', '<', record.end_time),
-                ('end_time', '>', record.start_time),
-            ])
-            if overlap_room:
-                raise ValidationError(f"Room overlap detected on {record.display_name}")
-
-            # Check lecturer overlap
-            overlap_lecturer = self.search([
-                ('id', '!=', record.id),
-                ('lecturer_id', '=', record.lecturer_id.id),
-                ('day_of_week', '=', record.day_of_week),
-                ('class_id.academic_year_id', '=', record.class_id.academic_year_id.id),
-                ('start_time', '<', record.end_time),
-                ('end_time', '>', record.start_time),
-            ])
-            if overlap_lecturer:
-                raise ValidationError(f"Lecturer overlap detected on {record.display_name}")
 
 
 class AcademicClassStudentLine(models.Model):

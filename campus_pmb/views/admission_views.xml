@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Form View -->
+    <record id="view_campus_admission_form" model="ir.ui.view">
+        <field name="name">campus.admission.form</field>
+        <field name="model">campus.admission</field>
+        <field name="arch" type="xml">
+            <form string="Admission">
+                <header>
+                    <button name="action_create_account" type="object" string="Create Account" class="oe_highlight" invisible="state != 'passed' or user_id"/>
+                    <button name="action_in_progress" string="Mark as In Progress" type="object" invisible="state != 'draft'" class="oe_highlight"/>
+                    <button name="action_pass" string="Pass" type="object" invisible="state != 'in_progress'" class="btn-success"/>
+                    <button name="action_reject" string="Reject" type="object" invisible="state not in ('draft', 'in_progress')" class="btn-danger"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_progress,passed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" class="oe_edit_only" string="Applicant Name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. John Doe"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Personal Information">
+                            <field name="email" widget="email"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="previous_school"/>
+                        </group>
+                        <group string="Application Details">
+                            <field name="registration_date"/>
+                            <field name="program_id"/>
+                            <field name="academic_year_id"/>
+                            <field name="partner_id" invisible="1"/>
+                            <field name="user_id" invisible="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="view_campus_admission_tree" model="ir.ui.view">
+        <field name="name">campus.admission.tree</field>
+        <field name="model">campus.admission</field>
+        <field name="arch" type="xml">
+            <tree string="Admissions">
+                <field name="name"/>
+                <field name="email"/>
+                <field name="program_id"/>
+                <field name="academic_year_id"/>
+                <field name="registration_date"/>
+                <field name="state" widget="badge" 
+                       decoration-info="state == 'in_progress'"
+                       decoration-success="state == 'passed'"
+                       decoration-danger="state == 'rejected'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_campus_admission" model="ir.actions.act_window">
+        <field name="name">Admissions</field>
+        <field name="res_model">campus.admission</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create the first admission record!
+            </p>
+        </field>
+    </record>
+
+    <!-- Menus -->
+    <menuitem id="menu_campus_pmb_root" name="Admissions" sequence="10" web_icon="campus_pmb,static/description/icon.png"/>
+    
+    <menuitem id="menu_campus_admission" name="Applicants" parent="menu_campus_pmb_root" action="action_campus_admission" sequence="10"/>
+
+</odoo>

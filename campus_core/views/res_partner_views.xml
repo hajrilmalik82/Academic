@@ -10,6 +10,7 @@
                     <group>
                         <field name="is_student"/>
                         <field name="nim" invisible="is_student == False"/>
+                        <field name="cgpa" readonly="1" invisible="is_student == False"/>
                     </group>
                 </page>
             </xpath>

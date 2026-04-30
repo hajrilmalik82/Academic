@@ -21,8 +21,8 @@
         <field name="view_mode">tree,form</field>
     </record>
 
-    <menuitem id="menu_campus_building" name="Buildings" parent="menu_academic_facility" action="action_campus_building" sequence="20"/>
-    <menuitem id="menu_campus_room" name="Rooms" parent="menu_academic_facility" action="action_campus_room" sequence="30"/>
+    <menuitem id="menu_campus_building" name="Buildings" parent="menu_academic_configuration" action="action_campus_building" sequence="50"/>
+    <menuitem id="menu_campus_room" name="Rooms" parent="menu_academic_configuration" action="action_campus_room" sequence="60"/>
 
     <!-- Institution Actions & Menus -->
     <record id="action_academic_faculty" model="ir.actions.act_window">
@@ -80,6 +80,7 @@
     </record>
 
     <menuitem id="menu_academic_class_act" name="Classes" parent="menu_academic_class" action="action_academic_class" sequence="10"/>
+    <menuitem id="menu_academic_class_schedule_act" name="Schedules" parent="menu_academic_class" action="action_academic_class_schedule" sequence="15"/>
     <menuitem id="menu_academic_class_session_act" name="Sessions" parent="menu_academic_class" action="action_academic_class_session" sequence="20"/>
 
 </odoo>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Portal Home: Add KRS and KHS counters -->
+    <template id="portal_my_home" inherit_id="portal.portal_my_home" priority="100">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">KRS Saya</t>
+                <t t-set="url" t-value="'/my/krs'"/>
+                <t t-set="placeholder_count" t-value="'krs_count'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">KHS Saya</t>
+                <t t-set="url" t-value="'/my/khs'"/>
+                <t t-set="placeholder_count" t-value="'khs_count'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- Breadcrumbs -->
+    <template id="portal_my_breadcrumbs" inherit_id="portal.portal_breadcrumbs" priority="100">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'krs'" class="breadcrumb-item active">
+                KRS Saya
+            </li>
+            <li t-if="page_name == 'khs'" class="breadcrumb-item active">
+                KHS Saya
+            </li>
+        </xpath>
+    </template>
+
+    <!-- KRS List Page -->
+    <template id="portal_my_krs" name="My KRS">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Course Packages (KRS)</t>
+            </t>
+            <t t-if="not krs_records">
+                <p>There are currently no KRS records for your account.</p>
+            </t>
+            <t t-if="krs_records" t-call="portal.portal_table">
+                <thead>
+                    <tr class="active">
+                        <th>KRS Number</th>
+                        <th>Academic Year</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="krs_records" t-as="krs">
+                        <tr>
+                            <td><span t-field="krs.name"/></td>
+                            <td><span t-field="krs.academic_year_id.name"/></td>
+                            <td>
+                                <span t-if="krs.state == 'draft'" class="badge rounded-pill text-bg-secondary">Draft</span>
+                                <span t-if="krs.state == 'submitted'" class="badge rounded-pill text-bg-info">Submitted</span>
+                                <span t-if="krs.state == 'approved'" class="badge rounded-pill text-bg-success">Approved</span>
+                            </td>
+                        </tr>
+                    </t>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+    <!-- KHS List Page -->
+    <template id="portal_my_khs" name="My KHS">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">Academic Transcripts (KHS)</t>
+            </t>
+            <t t-if="not khs_records">
+                <p>There are currently no KHS records for your account.</p>
+            </t>
+            <t t-if="khs_records" t-call="portal.portal_table">
+                <thead>
+                    <tr class="active">
+                        <th>KHS Number</th>
+                        <th>Academic Year</th>
+                        <th>Term</th>
+                        <th>Total Credits</th>
+                        <th>Term GPA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="khs_records" t-as="khs">
+                        <tr>
+                            <td><span t-field="khs.name"/></td>
+                            <td><span t-field="khs.academic_year_id.name"/></td>
+                            <td><span t-field="khs.term_type"/></td>
+                            <td><span t-field="khs.total_credits"/></td>
+                            <td><span t-field="khs.term_gpa"/></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </t>
+        </t>
+    </template>
+
+</odoo>
