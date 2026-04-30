@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Course Package Views -->
+    <record id="view_academic_course_package_tree" model="ir.ui.view">
+        <field name="name">academic.course.package.tree</field>
+        <field name="model">academic.course.package</field>
+        <field name="arch" type="xml">
+            <tree string="Course Packages">
+                <field name="name"/>
+                <field name="program_id"/>
+                <field name="term_type"/>
+                <field name="academic_year_id"/>
+                <field name="total_credits"/>
+                <field name="company_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_academic_course_package_form" model="ir.ui.view">
+        <field name="name">academic.course.package.form</field>
+        <field name="model">academic.course.package</field>
+        <field name="arch" type="xml">
+            <form string="Course Package">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="program_id"/>
+                            <field name="term_type"/>
+                        </group>
+                        <group>
+                            <field name="academic_year_id"/>
+                            <field name="total_credits"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Subjects">
+                            <field name="line_ids">
+                                <tree editable="bottom">
+                                    <field name="subject_id"/>
+                                    <field name="credits"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- KRS Views -->
+    <record id="view_academic_krs_kanban" model="ir.ui.view">
+        <field name="name">academic.krs.kanban</field>
+        <field name="model">academic.krs</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_mobile">
+                <field name="name"/>
+                <field name="student_id"/>
+                <field name="academic_year_id"/>
+                <field name="term_type"/>
+                <field name="state"/>
+                <field name="total_credits"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click">
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                </strong>
+                                <ul>
+                                    <li>Student: <field name="student_id"/></li>
+                                    <li>Term: <field name="term_type"/> <field name="academic_year_id"/></li>
+                                    <li>Credits: <field name="total_credits"/></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_academic_krs_tree" model="ir.ui.view">
+        <field name="name">academic.krs.tree</field>
+        <field name="model">academic.krs</field>
+        <field name="arch" type="xml">
+            <tree string="Student KRS">
+                <field name="name"/>
+                <field name="student_id"/>
+                <field name="academic_year_id"/>
+                <field name="term_type"/>
+                <field name="total_credits"/>
+                <field name="state"/>
+                <field name="company_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_academic_krs_form" model="ir.ui.view">
+        <field name="name">academic.krs.form</field>
+        <field name="model">academic.krs</field>
+        <field name="arch" type="xml">
+            <form string="Student KRS">
+                <header>
+                    <button name="action_submit" string="Submit" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object" class="oe_highlight" invisible="state != 'submitted'"/>
+                    <button name="action_set_draft" string="Set to Draft" type="object" invisible="state == 'draft'"/>
+                    <button name="action_load_package" string="Load Package" type="object" invisible="state != 'draft'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="student_id"/>
+                            <field name="academic_year_id"/>
+                            <field name="term_type"/>
+                        </group>
+                        <group>
+                            <field name="package_id" />
+                            <field name="total_credits"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="KRS Lines">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="subject_id"/>
+                                    <field name="credits"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Menu -->
+    <menuitem id="menu_academic_root" name="University ERP" sequence="10"/>
+
+    <!-- Submenus -->
+    <menuitem id="menu_academic_configuration" name="Configuration" parent="menu_academic_root" sequence="100"/>
+    <menuitem id="menu_academic_facility" name="Facilities" parent="menu_academic_root" sequence="20"/>
+    <menuitem id="menu_academic_krs" name="KRS &amp; KHS" parent="menu_academic_root" sequence="30"/>
+    <menuitem id="menu_academic_class" name="Class &amp; Schedule" parent="menu_academic_root" sequence="40"/>
+
+    <!-- Facility Actions & Menus -->
+    <record id="action_campus_building" model="ir.actions.act_window">
+        <field name="name">Buildings</field>
+        <field name="res_model">campus.building</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_campus_room" model="ir.actions.act_window">
+        <field name="name">Rooms</field>
+        <field name="res_model">campus.room</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_campus_building" name="Buildings" parent="menu_academic_facility" action="action_campus_building" sequence="20"/>
+    <menuitem id="menu_campus_room" name="Rooms" parent="menu_academic_facility" action="action_campus_room" sequence="30"/>
+
+    <!-- Institution Actions & Menus -->
+    <record id="action_academic_faculty" model="ir.actions.act_window">
+        <field name="name">Faculties</field>
+        <field name="res_model">academic.faculty</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_academic_program" model="ir.actions.act_window">
+        <field name="name">Programs</field>
+        <field name="res_model">academic.program</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_academic_subject" model="ir.actions.act_window">
+        <field name="name">Subjects</field>
+        <field name="res_model">academic.subject</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_academic_year" model="ir.actions.act_window">
+        <field name="name">Academic Years</field>
+        <field name="res_model">academic.year</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_academic_faculty" name="Faculties" parent="menu_academic_configuration" action="action_academic_faculty" sequence="10"/>
+    <menuitem id="menu_academic_program" name="Programs" parent="menu_academic_configuration" action="action_academic_program" sequence="20"/>
+    <menuitem id="menu_academic_subject" name="Subjects" parent="menu_academic_configuration" action="action_academic_subject" sequence="30"/>
+    <menuitem id="menu_academic_year" name="Academic Years" parent="menu_academic_configuration" action="action_academic_year" sequence="40"/>
+
+    <!-- KRS Actions & Menus -->
+    <record id="action_academic_course_package" model="ir.actions.act_window">
+        <field name="name">Course Packages</field>
+        <field name="res_model">academic.course.package</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_academic_krs" model="ir.actions.act_window">
+        <field name="name">Student KRS</field>
+        <field name="res_model">academic.krs</field>
+        <field name="view_mode">kanban,tree,form</field>
+    </record>
+
+    <menuitem id="menu_academic_course_package" name="Course Packages" parent="menu_academic_krs" action="action_academic_course_package" sequence="10"/>
+    <menuitem id="menu_academic_krs_act" name="Student KRS" parent="menu_academic_krs" action="action_academic_krs" sequence="20"/>
+    <menuitem id="menu_academic_khs_act" name="Student KHS" parent="menu_academic_krs" action="action_academic_khs" sequence="30"/>
+
+    <!-- Class Actions & Menus -->
+    <record id="action_academic_class" model="ir.actions.act_window">
+        <field name="name">Classes</field>
+        <field name="res_model">academic.class</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <record id="action_academic_class_session" model="ir.actions.act_window">
+        <field name="name">Sessions</field>
+        <field name="res_model">academic.class.session</field>
+        <field name="view_mode">calendar,tree,form</field>
+    </record>
+
+    <menuitem id="menu_academic_class_act" name="Classes" parent="menu_academic_class" action="action_academic_class" sequence="10"/>
+    <menuitem id="menu_academic_class_session_act" name="Sessions" parent="menu_academic_class" action="action_academic_class_session" sequence="20"/>
+
+</odoo>

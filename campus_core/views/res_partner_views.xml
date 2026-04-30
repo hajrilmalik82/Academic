@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_inherit_campus" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.campus</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Academic Info">
+                    <group>
+                        <field name="is_student"/>
+                        <field name="nim" invisible="is_student == False"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_res_partner_student" model="ir.actions.act_window">
+        <field name="name">Students</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_student', '=', True)]</field>
+        <field name="context">{'default_is_student': True, 'default_company_type': 'person'}</field>
+    </record>
+
+    <menuitem id="menu_academic_student" name="Students" parent="menu_academic_root" action="action_res_partner_student" sequence="10"/>
+</odoo>

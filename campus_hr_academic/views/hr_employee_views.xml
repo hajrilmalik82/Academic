@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_form_inherit_academic" model="ir.ui.view">
+        <field name="name">hr.employee.form.inherit.academic</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Academic Profile">
+                    <group>
+                        <field name="is_lecturer" widget="boolean_toggle"/>
+                        <field name="nidn" invisible="not is_lecturer"/>
+                        <field name="academic_rank" invisible="not is_lecturer"/>
+                        <field name="faculty_id" invisible="not is_lecturer"/>
+                        <field name="program_id" invisible="not is_lecturer"/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
