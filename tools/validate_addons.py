@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import csv
 import py_compile
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -51,6 +52,41 @@ def validate_manifest_data(addons: list[Path]) -> None:
             print(f"DATA OK {full_path.relative_to(ROOT)}")
 
 
+def collect_xml_record_ids(addons: list[Path]) -> set[str]:
+    record_ids = set()
+    for addon in addons:
+        for path in sorted(addon.rglob("*.xml")):
+            root = ET.parse(path).getroot()
+            for record in root.findall(".//record"):
+                record_id = record.attrib.get("id")
+                if record_id:
+                    record_ids.add(record_id)
+                    record_ids.add(f"{addon.name}.{record_id}")
+    return record_ids
+
+
+def validate_access_group_refs(addons: list[Path]) -> None:
+    known_groups = {
+        "base.group_portal",
+        "base.group_system",
+        "base.group_user",
+        "group_campus_administrator",
+        "group_campus_lecturer",
+    }
+    known_groups.update(collect_xml_record_ids(addons))
+
+    for addon in addons:
+        for path in sorted(addon.glob("security/ir.model.access.csv")):
+            with path.open(newline="", encoding="utf-8") as access_file:
+                for row in csv.DictReader(access_file):
+                    group_id = row.get("group_id:id", "")
+                    if group_id and group_id not in known_groups:
+                        raise ValueError(
+                            f"{path.relative_to(ROOT)} references unknown group_id:id {group_id!r}"
+                        )
+            print(f"ACCESS OK {path.relative_to(ROOT)}")
+
+
 def main() -> None:
     addons = iter_addons()
     if not addons:
@@ -59,6 +95,7 @@ def main() -> None:
     compile_python(addons)
     parse_xml(addons)
     validate_manifest_data(addons)
+    validate_access_group_refs(addons)
 
 
 if __name__ == "__main__":

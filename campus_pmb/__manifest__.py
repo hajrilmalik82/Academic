@@ -11,6 +11,7 @@
     'author': 'Hajril',
     'depends': ['base', 'mail', 'campus_core', 'portal'],
     'data': [
+        'security/pmb_security.xml',
         'security/ir.model.access.csv',
         'views/admission_views.xml',
     ],

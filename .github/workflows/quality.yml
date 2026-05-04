@@ -25,3 +25,46 @@ jobs:
         uses: astral-sh/ruff-action@v3
         with:
           args: check .
+
+      - name: Install pylint-odoo
+        run: python3 -m pip install pylint-odoo
+
+      - name: Run pylint-odoo
+        run: pylint --load-plugins=pylint_odoo --rcfile=pyproject.toml campus_core campus_hr_academic campus_pmb campus_portal
+
+  odoo-integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_USER: odoo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run Odoo module tests
+        run: |
+          docker run --rm --network host \
+            -v "$PWD:/mnt/extra-addons" \
+            --entrypoint /usr/bin/odoo \
+            odoo:17.0 \
+            --db_host=127.0.0.1 \
+            --db_port=5432 \
+            --db_user=odoo \
+            --db_password=odoo \
+            --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons \
+            --database=test_campus_addons \
+            --init=campus_core,campus_hr_academic,campus_pmb,campus_portal \
+            --test-enable \
+            --stop-after-init \
+            --log-level=test

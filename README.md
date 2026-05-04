@@ -28,14 +28,14 @@ python3 tools/validate_addons.py
 ```
 
 GitHub Actions runs the same validation automatically on pushes and pull
-requests to `main`. If `ruff` is available, the workflow also runs the
-configured Python lint checks from `pyproject.toml`.
+requests to `main`. The workflow also runs Ruff, pylint-odoo, and an Odoo 17
+module installation test backed by PostgreSQL.
 
 Run the Odoo transaction tests from an Odoo 17 environment with the addons path
 configured, for example:
 
 ```bash
-odoo-bin -d test_db --test-enable --stop-after-init -i campus_core
+odoo-bin -d test_db --test-enable --stop-after-init -i campus_core,campus_pmb
 ```
 
 ## Business Rules Covered
@@ -48,11 +48,14 @@ odoo-bin -d test_db --test-enable --stop-after-init -i campus_core
 - Room capacity must be greater than zero.
 - Class schedules validate time ranges and prevent room or lecturer overlaps.
 - Admissions accounts can only be created after an applicant passes.
+- Grade conversion is centralized in a reusable KHS grade scale.
 
 ## Access Model
 
 - Campus administrators manage academic master data, KRS, KHS, schedules, and
   classes.
+- PMB officers manage admission records without requiring full system
+  administration access.
 - Lecturers have read-only access to academic reference data, KRS, KHS, and KHS
   lines by default.
 - Portal students can read only their own KRS and KHS records through record
@@ -70,7 +73,7 @@ odoo-bin -d test_db --test-enable --stop-after-init -i campus_core
 
 ## Recommended Next Steps
 
-- Add `pylint-odoo` in an Odoo-capable CI image for deeper Odoo-specific linting.
-- Add module installation tests for `campus_pmb`, `campus_hr_academic`, and
-  `campus_portal`.
+- Add migration scripts before changing installed database schemas in
+  production.
+- Add browser-level portal tests for student-facing flows.
 - Review access rights with real campus roles before production use.
