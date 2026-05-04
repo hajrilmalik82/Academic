@@ -62,6 +62,7 @@
                     </t>
                 </tbody>
             </t>
+            <t t-call="portal.pager"/>
         </t>
     </template>
 
@@ -98,6 +99,7 @@
                     </t>
                 </tbody>
             </t>
+            <t t-call="portal.pager"/>
         </t>
     </template>
 

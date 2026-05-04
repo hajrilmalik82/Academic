@@ -1,4 +1,5 @@
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class AcademicKhs(models.Model):
@@ -17,6 +18,14 @@ class AcademicKhs(models.Model):
     total_grade_points = fields.Float(string='Total Grade Points', compute='_compute_term_gpa', store=True, digits=(16, 2))
     term_gpa = fields.Float(string='Term GPA', compute='_compute_term_gpa', store=True, digits=(5, 2))
 
+    _sql_constraints = [
+        (
+            'unique_khs_period',
+            'unique(student_id, academic_year_id, term_type)',
+            'A KHS already exists for this student and academic period.'
+        ),
+    ]
+
     @api.depends('line_ids.grade_points', 'line_ids.credits')
     def _compute_term_gpa(self):
         for record in self:
@@ -32,6 +41,23 @@ class AcademicKhs(models.Model):
             if vals.get('name', 'New') == 'New':
                 vals['name'] = self.env['ir.sequence'].next_by_code('academic.khs') or 'New'
         return super().create(vals_list)
+
+    @api.constrains('student_id', 'academic_year_id', 'term_type')
+    def _check_approved_krs_exists(self):
+        for record in self:
+            if not record.student_id or not record.academic_year_id or not record.term_type:
+                continue
+
+            approved_krs = self.env['academic.krs'].search_count([
+                ('student_id', '=', record.student_id.id),
+                ('academic_year_id', '=', record.academic_year_id.id),
+                ('term_type', '=', record.term_type),
+                ('state', '=', 'approved'),
+            ])
+            if not approved_krs:
+                raise ValidationError(
+                    "An approved KRS is required before creating a KHS for this academic period."
+                )
 
     @api.onchange('student_id', 'academic_year_id', 'term_type')
     def _onchange_pull_krs_data(self):
@@ -74,6 +100,19 @@ class AcademicKhsLine(models.Model):
     # Computed grade conversion fields
     letter_grade = fields.Char(string='Letter Grade', compute='_compute_grade_conversion', store=True)
     grade_points = fields.Float(string='Grade Points', compute='_compute_grade_conversion', store=True, digits=(5, 2))
+
+    _sql_constraints = [
+        (
+            'unique_khs_subject',
+            'unique(khs_id, subject_id)',
+            'The same subject cannot appear more than once in a KHS.'
+        ),
+        (
+            'numeric_grade_range',
+            'CHECK(numeric_grade >= 0 AND numeric_grade <= 100)',
+            'Numeric grade must be between 0 and 100.'
+        ),
+    ]
 
     @api.depends('numeric_grade')
     def _compute_grade_conversion(self):

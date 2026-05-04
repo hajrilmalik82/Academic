@@ -24,6 +24,16 @@ class AcademicClassSchedule(models.Model):
     enrolled_count = fields.Integer(string='Enrolled', compute='_compute_capacity_display')
     capacity_display = fields.Char(string='Capacity (Max/Filled)', compute='_compute_capacity_display')
 
+    @api.constrains('start_time', 'end_time')
+    def _check_time_range(self):
+        for record in self:
+            if record.start_time < 0 or record.end_time < 0:
+                raise ValidationError("Schedule times cannot be negative.")
+            if record.start_time >= record.end_time:
+                raise ValidationError("Schedule end time must be after start time.")
+            if record.end_time > 24:
+                raise ValidationError("Schedule end time cannot be later than 24:00.")
+
     @api.depends('room_capacity', 'class_id.student_line_ids.schedule_ids')
     def _compute_capacity_display(self):
         for record in self:
