@@ -85,7 +85,6 @@
                             <field name="name"/>
                             <field name="code"/>
                             <field name="credits"/>
-                            <field name="sks" invisible="1"/>
                         </group>
                         <group>
                             <field name="term_type"/>
