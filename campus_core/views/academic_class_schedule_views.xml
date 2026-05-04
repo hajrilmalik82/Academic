@@ -9,6 +9,7 @@
             <search string="Search Schedules">
                 <!-- Left Sidebar Search Panel -->
                 <searchpanel>
+                    <field name="class_id" string="Class" select="multi" enable_counters="1"/>
                     <field name="day_of_week" string="Day of Week" select="one" enable_counters="1"/>
                     <field name="lecturer_id" string="Lecturer" select="multi" enable_counters="1"/>
                     <field name="room_id" string="Room" select="multi" enable_counters="1"/>
