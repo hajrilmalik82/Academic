@@ -120,6 +120,14 @@ class TestAcademicRules(TransactionCase):
         self.assertEqual(khs.line_ids.grade_points, 4.0)
         self.assertEqual(khs.term_gpa, 4.0)
 
+    def test_grade_scale_boundaries(self):
+        line_model = self.env['academic.khs.line']
+
+        self.assertEqual(line_model._get_grade_from_score(79.99), ('A-', 3.75))
+        self.assertEqual(line_model._get_grade_from_score(80.0), ('A', 4.0))
+        self.assertEqual(line_model._get_grade_from_score(39.99), ('E', 0.0))
+        self.assertEqual(line_model._get_grade_from_score(40.0), ('D', 1.0))
+
     def test_numeric_grade_range(self):
         krs = self.env['academic.krs'].create({
             'student_id': self.student.id,

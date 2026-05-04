@@ -90,6 +90,17 @@ class AcademicKhs(models.Model):
 class AcademicKhsLine(models.Model):
     _name = 'academic.khs.line'
     _description = 'KHS Grade Line'
+    _grade_scale = (
+        (80, 'A', 4.00),
+        (75, 'A-', 3.75),
+        (70, 'B+', 3.50),
+        (65, 'B', 3.00),
+        (60, 'B-', 2.75),
+        (55, 'C+', 2.50),
+        (50, 'C', 2.00),
+        (40, 'D', 1.00),
+        (0, 'E', 0.00),
+    )
 
     khs_id = fields.Many2one('academic.khs', string='KHS', ondelete='cascade')
     subject_id = fields.Many2one('academic.subject', string='Subject', required=True)
@@ -118,30 +129,8 @@ class AcademicKhsLine(models.Model):
     def _compute_grade_conversion(self):
         for record in self:
             score = record.numeric_grade or 0.0
-            if score >= 80:
-                record.letter_grade = 'A'
-                record.grade_points = 4.00
-            elif score >= 75:
-                record.letter_grade = 'A-'
-                record.grade_points = 3.75
-            elif score >= 70:
-                record.letter_grade = 'B+'
-                record.grade_points = 3.50
-            elif score >= 65:
-                record.letter_grade = 'B'
-                record.grade_points = 3.00
-            elif score >= 60:
-                record.letter_grade = 'B-'
-                record.grade_points = 2.75
-            elif score >= 55:
-                record.letter_grade = 'C+'
-                record.grade_points = 2.50
-            elif score >= 50:
-                record.letter_grade = 'C'
-                record.grade_points = 2.00
-            elif score >= 40:
-                record.letter_grade = 'D'
-                record.grade_points = 1.00
-            else:
-                record.letter_grade = 'E'
-                record.grade_points = 0.00
+            for minimum_score, letter, points in self._grade_scale:
+                if score >= minimum_score:
+                    record.letter_grade = letter
+                    record.grade_points = points
+                    break
