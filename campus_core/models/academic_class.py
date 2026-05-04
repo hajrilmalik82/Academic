@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from datetime import datetime, time, timedelta
 import pytz
@@ -26,7 +26,7 @@ class AcademicClass(models.Model):
             if record.subject_id and record.academic_year_id:
                 record.name = f"{record.subject_id.name} - {record.academic_year_id.name}"
             else:
-                record.name = "New Class"
+                record.name = _("New Class")
 
     @api.depends('schedule_ids.room_capacity', 'student_line_ids')
     def _compute_class_capacity_display(self):
@@ -38,9 +38,9 @@ class AcademicClass(models.Model):
     def action_generate_sessions(self):
         self.ensure_one()
         if not self.start_date:
-            raise ValidationError("Please set a Start Date to generate sessions.")
+            raise ValidationError(_("Please set a Start Date to generate sessions."))
         if not self.schedule_ids:
-            raise ValidationError("Please define at least one schedule to generate sessions.")
+            raise ValidationError(_("Please define at least one schedule to generate sessions."))
 
         self.session_ids.unlink()
 
@@ -116,7 +116,13 @@ class AcademicClassStudentLine(models.Model):
             ], limit=1)
 
             if not krs_line:
-                raise ValidationError(f"Gagal! Mahasiswa {record.student_id.name} belum mendaftarkan KRS untuk Mata Kuliah {record.class_id.subject_id.name} pada tahun ajaran ini, atau status KRS belum di-Approve.")
+                raise ValidationError(_(
+                    "%(student)s is not approved to attend %(subject)s for this academic year. "
+                    "Please approve the student's KRS first."
+                ) % {
+                    'student': record.student_id.name,
+                    'subject': record.class_id.subject_id.name,
+                })
 
     @api.constrains('schedule_ids')
     def _check_schedule_capacity(self):
@@ -127,9 +133,9 @@ class AcademicClassStudentLine(models.Model):
                     ('schedule_ids', 'in', schedule.id),
                 ])
                 if enrolled > schedule.room_capacity:
-                    raise ValidationError(
-                        f"Schedule {schedule.display_name} exceeds room capacity."
-                    )
+                    raise ValidationError(_(
+                        "Schedule %(schedule)s exceeds room capacity."
+                    ) % {'schedule': schedule.display_name})
 
 
 class AcademicClassSession(models.Model):
@@ -151,4 +157,4 @@ class AcademicClassSession(models.Model):
                 and record.end_datetime
                 and record.end_datetime <= record.start_datetime
             ):
-                raise ValidationError("Session end datetime must be after start datetime.")
+                raise ValidationError(_("Session end datetime must be after start datetime."))

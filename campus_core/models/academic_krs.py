@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -79,29 +79,29 @@ class AcademicKrs(models.Model):
     def action_submit(self):
         for record in self:
             if record.state != 'draft':
-                raise ValidationError("Only draft KRS records can be submitted.")
+                raise ValidationError(_("Only draft KRS records can be submitted."))
             if not record.line_ids:
-                raise ValidationError("Please add at least one subject before submitting the KRS.")
+                raise ValidationError(_("Please add at least one subject before submitting the KRS."))
             record.state = 'submitted'
 
     def action_approve(self):
         for record in self:
             if record.state != 'submitted':
-                raise ValidationError("Only submitted KRS records can be approved.")
+                raise ValidationError(_("Only submitted KRS records can be approved."))
             if not self.env.user.has_group('campus_core.group_campus_administrator'):
-                raise ValidationError("Only campus administrators can approve KRS records.")
+                raise ValidationError(_("Only campus administrators can approve KRS records."))
             record.state = 'approved'
 
     def action_set_draft(self):
         for record in self:
             if record.state == 'approved' and not self.env.user.has_group('campus_core.group_campus_administrator'):
-                raise ValidationError("Only campus administrators can reset an approved KRS to draft.")
+                raise ValidationError(_("Only campus administrators can reset an approved KRS to draft."))
             record.state = 'draft'
 
     def action_load_package(self):
         for record in self:
             if record.state != 'draft':
-                raise ValidationError("Course packages can only be loaded while the KRS is in draft.")
+                raise ValidationError(_("Course packages can only be loaded while the KRS is in draft."))
             if record.package_id:
                 record.line_ids.unlink()
                 lines = []
