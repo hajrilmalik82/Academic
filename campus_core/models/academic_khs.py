@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -22,7 +22,7 @@ class AcademicKhs(models.Model):
         (
             'unique_khs_period',
             'unique(student_id, academic_year_id, term_type)',
-            'A KHS already exists for this student and academic period.'
+            'A KHS already exists for this student and academic period.',
         ),
     ]
 
@@ -56,7 +56,7 @@ class AcademicKhs(models.Model):
             ])
             if not approved_krs:
                 raise ValidationError(
-                    "An approved KRS is required before creating a KHS for this academic period."
+                    _("An approved KRS is required before creating a KHS for this academic period.")
                 )
 
     @api.onchange('student_id', 'academic_year_id', 'term_type')
@@ -81,8 +81,8 @@ class AcademicKhs(models.Model):
                 self.line_ids = False
                 return {
                     'warning': {
-                        'title': "Approved KRS Not Found",
-                        'message': "No approved KRS found for this student in the selected academic period."
+                        'title': _("Approved KRS Not Found"),
+                        'message': _("No approved KRS found for this student in the selected academic period."),
                     }
                 }
 
@@ -105,7 +105,7 @@ class AcademicKhsLine(models.Model):
         (
             'unique_khs_subject',
             'unique(khs_id, subject_id)',
-            'The same subject cannot appear more than once in a KHS.'
+            'The same subject cannot appear more than once in a KHS.',
         ),
         (
             'numeric_grade_range',

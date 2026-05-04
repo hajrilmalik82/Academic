@@ -95,3 +95,48 @@ class TestAcademicRules(TransactionCase):
                 'end_time': 9.0,
                 'room_id': room.id,
             })
+
+    def test_grade_conversion_and_term_gpa(self):
+        krs = self.env['academic.krs'].create({
+            'student_id': self.student.id,
+            'academic_year_id': self.academic_year.id,
+            'term_type': 'odd',
+            'line_ids': [(0, 0, {'subject_id': self.subject.id})],
+        })
+        krs.action_submit()
+        krs.action_approve()
+
+        khs = self.env['academic.khs'].create({
+            'student_id': self.student.id,
+            'academic_year_id': self.academic_year.id,
+            'term_type': 'odd',
+            'line_ids': [(0, 0, {
+                'subject_id': self.subject.id,
+                'numeric_grade': 80.0,
+            })],
+        })
+
+        self.assertEqual(khs.line_ids.letter_grade, 'A')
+        self.assertEqual(khs.line_ids.grade_points, 4.0)
+        self.assertEqual(khs.term_gpa, 4.0)
+
+    def test_numeric_grade_range(self):
+        krs = self.env['academic.krs'].create({
+            'student_id': self.student.id,
+            'academic_year_id': self.academic_year.id,
+            'term_type': 'odd',
+            'line_ids': [(0, 0, {'subject_id': self.subject.id})],
+        })
+        krs.action_submit()
+        krs.action_approve()
+
+        with self.assertRaises(Exception):
+            self.env['academic.khs'].create({
+                'student_id': self.student.id,
+                'academic_year_id': self.academic_year.id,
+                'term_type': 'odd',
+                'line_ids': [(0, 0, {
+                    'subject_id': self.subject.id,
+                    'numeric_grade': 101.0,
+                })],
+            })

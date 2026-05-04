@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -8,8 +8,8 @@ class CampusBuilding(models.Model):
 
     name = fields.Char(string='Name', required=True)
     code = fields.Char(string='Code')
-    location = fields.Char(string='Location', required=True, help="Contoh: Kampus A Sudirman")
-    company_id = fields.Many2one('res.company', string='Company',default=lambda self: self.env.company)
+    location = fields.Char(string='Location', required=True, help="Example: Campus A Sudirman")
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
 
 
 class CampusRoom(models.Model):
@@ -29,4 +29,4 @@ class CampusRoom(models.Model):
     def _check_capacity(self):
         for record in self:
             if record.capacity <= 0:
-                raise ValidationError("Room capacity must be greater than zero.")
+                raise ValidationError(_("Room capacity must be greater than zero."))

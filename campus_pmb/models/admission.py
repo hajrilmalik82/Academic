@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -47,31 +47,31 @@ class CampusAdmission(models.Model):
     def action_in_progress(self):
         for record in self:
             if record.state != 'draft':
-                raise UserError("Only draft applications can be moved to in progress.")
+                raise UserError(_("Only draft applications can be moved to in progress."))
             record.state = 'in_progress'
 
     def action_reject(self):
         for record in self:
             if record.state not in ('draft', 'in_progress'):
-                raise UserError("Only draft or in-progress applications can be rejected.")
+                raise UserError(_("Only draft or in-progress applications can be rejected."))
             record.state = 'rejected'
 
     def action_pass(self):
         for record in self:
             if record.state != 'in_progress':
-                raise UserError("Only in-progress applications can be marked as passed.")
+                raise UserError(_("Only in-progress applications can be marked as passed."))
             record.state = 'passed'
 
     def action_create_account(self):
         for record in self:
             if record.state != 'passed':
-                raise UserError("Hanya pendaftar yang lulus yang bisa dibuatkan akun.")
+                raise UserError(_("Only accepted applicants can have a portal account created."))
             
             if not record.email:
-                raise UserError("Email is required to create a Portal account.")
+                raise UserError(_("Email is required to create a Portal account."))
                 
             if record.user_id:
-                raise UserError("Akun sudah dibuat.")
+                raise UserError(_("A portal account has already been created."))
                 
             # Check if user with this email already exists in the system
             existing_user = self.env['res.users'].search([('login', '=', record.email)], limit=1)

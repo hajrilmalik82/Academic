@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class AcademicSubject(models.Model):
@@ -8,7 +9,6 @@ class AcademicSubject(models.Model):
     name = fields.Char(string='Name', required=True)
     code = fields.Char(string='Code', required=True)
     credits = fields.Integer(string='Credits (SKS)', default=2)
-    sks = fields.Integer(string='SKS', default=2)
     term_type = fields.Selection([
         ('odd', 'Odd'),
         ('even', 'Even'),
@@ -21,6 +21,20 @@ class AcademicSubject(models.Model):
         'res.company', string='Company',
         default=lambda self: self.env.company
     )
+
+    _sql_constraints = [
+        (
+            'code_program_unique',
+            'unique(code, program_id)',
+            'Subject code must be unique within a program.',
+        ),
+    ]
+
+    @api.constrains('credits')
+    def _check_credits(self):
+        for record in self:
+            if record.credits <= 0:
+                raise ValidationError(_("Credits must be greater than zero."))
 
 
 class AcademicYear(models.Model):

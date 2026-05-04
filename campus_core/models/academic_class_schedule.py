@@ -1,4 +1,4 @@
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 
 
@@ -28,11 +28,11 @@ class AcademicClassSchedule(models.Model):
     def _check_time_range(self):
         for record in self:
             if record.start_time < 0 or record.end_time < 0:
-                raise ValidationError("Schedule times cannot be negative.")
+                raise ValidationError(_("Schedule times cannot be negative."))
             if record.start_time >= record.end_time:
-                raise ValidationError("Schedule end time must be after start time.")
+                raise ValidationError(_("Schedule end time must be after start time."))
             if record.end_time > 24:
-                raise ValidationError("Schedule end time cannot be later than 24:00.")
+                raise ValidationError(_("Schedule end time cannot be later than 24:00."))
 
     @api.depends('room_capacity', 'class_id.student_line_ids.schedule_ids')
     def _compute_capacity_display(self):
@@ -66,7 +66,7 @@ class AcademicClassSchedule(models.Model):
                 ('end_time', '>', record.start_time),
             ])
             if overlap_room:
-                raise ValidationError(f"Room overlap detected on {record.display_name}")
+                raise ValidationError(_("Room overlap detected on %s") % record.display_name)
 
             # Check lecturer overlap — skip if no lecturer assigned
             if record.lecturer_id:
@@ -79,4 +79,4 @@ class AcademicClassSchedule(models.Model):
                     ('end_time', '>', record.start_time),
                 ])
                 if overlap_lecturer:
-                    raise ValidationError(f"Lecturer overlap detected on {record.display_name}")
+                    raise ValidationError(_("Lecturer overlap detected on %s") % record.display_name)
