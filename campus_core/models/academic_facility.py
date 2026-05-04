@@ -1,4 +1,5 @@
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class CampusBuilding(models.Model):
@@ -22,4 +23,10 @@ class CampusRoom(models.Model):
         ('theory', 'Theory'),
         ('lab', 'Laboratory')
     ], string='Room Type', required=True, default='theory')
-    company_id = fields.Many2one('res.company', string='Company',default=lambda self: self.env.company)
+    company_id = fields.Many2one('res.company', string='Company', default=lambda self: self.env.company)
+
+    @api.constrains('capacity')
+    def _check_capacity(self):
+        for record in self:
+            if record.capacity <= 0:
+                raise ValidationError("Room capacity must be greater than zero.")

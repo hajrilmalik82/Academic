@@ -1,7 +1,6 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 from datetime import datetime, time, timedelta
-import math
 import pytz
 
 
@@ -76,10 +75,11 @@ class AcademicClass(models.Model):
                 utc_end_dt = user_tz.localize(local_end_dt).astimezone(pytz.utc).replace(tzinfo=None)
 
                 sessions.append((0, 0, {
-                    'name': f"Session {i+1}: {self.name}",
+                    'name': f"Session {i + 1}: {self.name}",
                     'start_datetime': utc_start_dt,
                     'end_datetime': utc_end_dt,
                     'room_id': schedule.room_id.id,
+                    'lecturer_id': schedule.lecturer_id.id,
                 }))
 
         self.write({'session_ids': sessions})
@@ -90,6 +90,13 @@ class AcademicClass(models.Model):
 class AcademicClassStudentLine(models.Model):
     _name = 'academic.class.student.line'
     _description = 'Academic Class Student Line'
+    _sql_constraints = [
+        (
+            'student_class_unique',
+            'unique(student_id, class_id)',
+            'A student can only be enrolled once in the same class.',
+        ),
+    ]
 
     class_id = fields.Many2one('academic.class', string='Class', ondelete='cascade')
     student_id = fields.Many2one('res.partner', string='Student', required=True, domain=[('is_student', '=', True)])
@@ -100,16 +107,29 @@ class AcademicClassStudentLine(models.Model):
         for record in self:
             if not record.student_id or not record.class_id:
                 continue
-                
+
             krs_line = self.env['academic.krs.line'].search([
                 ('krs_id.student_id', '=', record.student_id.id),
                 ('krs_id.state', '=', 'approved'),
                 ('krs_id.academic_year_id', '=', record.class_id.academic_year_id.id),
                 ('subject_id', '=', record.class_id.subject_id.id)
             ], limit=1)
-            
+
             if not krs_line:
                 raise ValidationError(f"Gagal! Mahasiswa {record.student_id.name} belum mendaftarkan KRS untuk Mata Kuliah {record.class_id.subject_id.name} pada tahun ajaran ini, atau status KRS belum di-Approve.")
+
+    @api.constrains('schedule_ids')
+    def _check_schedule_capacity(self):
+        for record in self:
+            for schedule in record.schedule_ids:
+                enrolled = self.search_count([
+                    ('class_id', '=', record.class_id.id),
+                    ('schedule_ids', 'in', schedule.id),
+                ])
+                if enrolled > schedule.room_capacity:
+                    raise ValidationError(
+                        f"Schedule {schedule.display_name} exceeds room capacity."
+                    )
 
 
 class AcademicClassSession(models.Model):
@@ -122,3 +142,13 @@ class AcademicClassSession(models.Model):
     end_datetime = fields.Datetime(string='End Datetime', required=True)
     room_id = fields.Many2one('campus.room', string='Room')
     lecturer_id = fields.Many2one('hr.employee', string='Lecturer')
+
+    @api.constrains('start_datetime', 'end_datetime')
+    def _check_session_datetime(self):
+        for record in self:
+            if (
+                record.start_datetime
+                and record.end_datetime
+                and record.end_datetime <= record.start_datetime
+            ):
+                raise ValidationError("Session end datetime must be after start datetime.")

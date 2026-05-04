@@ -36,16 +36,30 @@ class CampusAdmission(models.Model):
         ('rejected', 'Rejected')
     ], string='Status', default='draft', tracking=True)
 
+    _sql_constraints = [
+        (
+            'email_unique',
+            'unique(email)',
+            'An admission record already exists for this email address.'
+        ),
+    ]
+
     def action_in_progress(self):
         for record in self:
+            if record.state != 'draft':
+                raise UserError("Only draft applications can be moved to in progress.")
             record.state = 'in_progress'
 
     def action_reject(self):
         for record in self:
+            if record.state not in ('draft', 'in_progress'):
+                raise UserError("Only draft or in-progress applications can be rejected.")
             record.state = 'rejected'
 
     def action_pass(self):
         for record in self:
+            if record.state != 'in_progress':
+                raise UserError("Only in-progress applications can be marked as passed.")
             record.state = 'passed'
 
     def action_create_account(self):
