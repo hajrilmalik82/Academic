@@ -13,6 +13,7 @@
     'data': [
         'security/pmb_security.xml',
         'security/ir.model.access.csv',
+        'data/ir_sequence_data.xml',
         'views/admission_views.xml',
     ],
     'installable': True,

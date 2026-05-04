@@ -7,10 +7,23 @@ class CampusAdmission(models.Model):
     _description = 'New Student Admission'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
+    registration_number = fields.Char(
+        string='Registration Number',
+        required=True,
+        copy=False,
+        readonly=True,
+        default=lambda self: _('New'),
+        tracking=True,
+    )
     name = fields.Char(string='Applicant Name', required=True, tracking=True)
     email = fields.Char(string='Email', required=True, tracking=True)
     phone = fields.Char(string='Phone', tracking=True)
     previous_school = fields.Char(string='Previous School', tracking=True)
+    admission_path = fields.Selection([
+        ('regular', 'Regular'),
+        ('scholarship', 'Scholarship'),
+        ('transfer', 'Transfer'),
+    ], string='Admission Path', default='regular', required=True, tracking=True)
 
     registration_date = fields.Date(
         string='Registration Date', default=fields.Date.context_today, tracking=True
@@ -28,12 +41,30 @@ class CampusAdmission(models.Model):
     user_id = fields.Many2one(
         'res.users', string='Portal User', readonly=True, tracking=True
     )
+    document_line_ids = fields.One2many(
+        'campus.admission.document', 'admission_id', string='Document Checklist'
+    )
+    required_document_count = fields.Integer(
+        string='Required Documents', compute='_compute_document_progress'
+    )
+    received_document_count = fields.Integer(
+        string='Received Documents', compute='_compute_document_progress'
+    )
+    documents_complete = fields.Boolean(
+        string='Documents Complete', compute='_compute_document_progress'
+    )
+    payment_reference = fields.Char(string='Payment Reference', tracking=True)
+    payment_date = fields.Date(string='Payment Date', tracking=True)
 
     state = fields.Selection([
         ('draft', 'Draft'),
-        ('in_progress', 'In Progress'),
-        ('passed', 'Passed'),
-        ('rejected', 'Rejected')
+        ('submitted', 'Submitted'),
+        ('document_review', 'Document Review'),
+        ('payment_pending', 'Payment Pending'),
+        ('payment_verified', 'Payment Verified'),
+        ('accepted', 'Accepted'),
+        ('registered', 'Registered'),
+        ('rejected', 'Rejected'),
     ], string='Status', default='draft', tracking=True)
 
     _sql_constraints = [
@@ -44,27 +75,100 @@ class CampusAdmission(models.Model):
         ),
     ]
 
-    def action_in_progress(self):
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for record in records:
+            if record.registration_number == _('New'):
+                record.registration_number = (
+                    self.env['ir.sequence'].next_by_code('campus.admission') or _('New')
+                )
+            record._ensure_default_documents()
+        return records
+
+    @api.depends('document_line_ids.required', 'document_line_ids.received')
+    def _compute_document_progress(self):
+        for record in self:
+            required_lines = record.document_line_ids.filtered('required')
+            received_lines = required_lines.filtered('received')
+            record.required_document_count = len(required_lines)
+            record.received_document_count = len(received_lines)
+            record.documents_complete = bool(required_lines) and len(required_lines) == len(received_lines)
+
+    def _ensure_default_documents(self):
+        default_documents = self.env['campus.admission.document']._default_document_types()
+        for record in self:
+            existing_types = set(record.document_line_ids.mapped('document_type'))
+            lines = [
+                (0, 0, {
+                    'document_type': document_type,
+                    'required': True,
+                })
+                for document_type in default_documents
+                if document_type not in existing_types
+            ]
+            if lines:
+                record.write({'document_line_ids': lines})
+
+    def _require_state(self, allowed_states):
+        for record in self:
+            if record.state not in allowed_states:
+                raise UserError(_(
+                    "This action is not allowed from the current admission status."
+                ))
+
+    def action_submit(self):
         for record in self:
             if record.state != 'draft':
-                raise UserError(_("Only draft applications can be moved to in progress."))
-            record.state = 'in_progress'
+                raise UserError(_("Only draft applications can be submitted."))
+            record._ensure_default_documents()
+            record.state = 'submitted'
+
+    def action_start_document_review(self):
+        self._require_state({'submitted'})
+        self.write({'state': 'document_review'})
+
+    def action_verify_documents(self):
+        self._require_state({'document_review'})
+        for record in self:
+            if not record.documents_complete:
+                raise UserError(_("All required documents must be received first."))
+            record.state = 'payment_pending'
+
+    def action_verify_payment(self):
+        self._require_state({'payment_pending'})
+        for record in self:
+            if not record.payment_reference:
+                raise UserError(_("Payment reference is required before payment verification."))
+            record.payment_date = record.payment_date or fields.Date.context_today(record)
+            record.state = 'payment_verified'
 
     def action_reject(self):
         for record in self:
-            if record.state not in ('draft', 'in_progress'):
-                raise UserError(_("Only draft or in-progress applications can be rejected."))
+            if record.state in ('accepted', 'registered'):
+                raise UserError(_("Accepted or registered applications cannot be rejected."))
             record.state = 'rejected'
 
-    def action_pass(self):
+    def action_accept(self):
         for record in self:
-            if record.state != 'in_progress':
-                raise UserError(_("Only in-progress applications can be marked as passed."))
-            record.state = 'passed'
+            if record.state != 'payment_verified':
+                raise UserError(_("Only payment-verified applications can be accepted."))
+            if not (
+                self.env.user.has_group('campus_pmb.group_pmb_manager')
+                or self.env.user.has_group('base.group_system')
+            ):
+                raise UserError(_("Only admissions managers can accept applications."))
+            record.state = 'accepted'
+
+    def action_register(self):
+        self._require_state({'accepted'})
+        for record in self:
+            record.action_create_account()
+            record.state = 'registered'
 
     def action_create_account(self):
         for record in self:
-            if record.state != 'passed':
+            if record.state not in ('accepted', 'registered'):
                 raise UserError(_("Only accepted applicants can have a portal account created."))
             
             if not record.email:
@@ -103,3 +207,36 @@ class CampusAdmission(models.Model):
                 'company_id': self.env.company.id,
             })
             record.user_id = user.id
+
+
+class CampusAdmissionDocument(models.Model):
+    _name = 'campus.admission.document'
+    _description = 'Admission Document Checklist'
+    _order = 'admission_id, document_type'
+
+    @api.model
+    def _default_document_types(self):
+        return ['identity_card', 'family_card', 'diploma', 'photo']
+
+    admission_id = fields.Many2one(
+        'campus.admission', string='Admission', required=True, ondelete='cascade'
+    )
+    document_type = fields.Selection([
+        ('identity_card', 'Identity Card'),
+        ('family_card', 'Family Card'),
+        ('diploma', 'Diploma or Graduation Letter'),
+        ('photo', 'Photo'),
+        ('transcript', 'Transcript'),
+        ('other', 'Other'),
+    ], string='Document Type', required=True)
+    required = fields.Boolean(string='Required', default=True)
+    received = fields.Boolean(string='Received')
+    note = fields.Char(string='Note')
+
+    _sql_constraints = [
+        (
+            'unique_document_type_per_admission',
+            'unique(admission_id, document_type)',
+            'Each document type can only appear once per admission.',
+        ),
+    ]

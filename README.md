@@ -47,7 +47,11 @@ odoo-bin -d test_db --test-enable --stop-after-init -i campus_core,campus_pmb
 - KHS grades must be between 0 and 100.
 - Room capacity must be greater than zero.
 - Class schedules validate time ranges and prevent room or lecturer overlaps.
-- Admissions accounts can only be created after an applicant passes.
+- Admissions records follow a staged PMB workflow: draft, submitted, document
+  verification, payment verification, accepted/rejected, and registered.
+- Admissions can require document checklist completion and payment verification
+  before acceptance.
+- Admissions accounts can only be created after an applicant is accepted.
 - Grade conversion is centralized in a reusable KHS grade scale.
 
 ## Access Model
