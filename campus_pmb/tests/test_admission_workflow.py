@@ -21,20 +21,43 @@ class TestAdmissionWorkflow(TransactionCase):
             'academic_year_id': self.academic_year.id,
         })
 
+    def _add_verified_required_document(self, admission):
+        document = admission.document_line_ids[:1]
+        document.received = True
+        return document
+
     def test_admission_state_flow_is_enforced(self):
         admission = self._create_admission()
+        self.assertNotEqual(admission.registration_number, 'New')
 
         with self.assertRaises(UserError):
-            admission.action_pass()
+            admission.action_accept()
 
-        admission.action_in_progress()
-        admission.action_pass()
-        self.assertEqual(admission.state, 'passed')
+        admission.action_submit()
+        admission.action_start_document_review()
+        admission.document_line_ids.write({'received': True})
+        admission.action_verify_documents()
+        admission.payment_reference = 'PAY-001'
+        admission.action_verify_payment()
+        admission.action_accept()
+        self.assertEqual(admission.state, 'accepted')
 
         with self.assertRaises(UserError):
             admission.action_reject()
 
-    def test_create_account_requires_passed_admission(self):
+    def test_document_verification_requires_required_documents(self):
+        admission = self._create_admission('document@example.com')
+        admission.action_submit()
+        admission.action_start_document_review()
+
+        with self.assertRaises(UserError):
+            admission.action_verify_documents()
+
+        admission.document_line_ids.write({'received': True})
+        admission.action_verify_documents()
+        self.assertEqual(admission.state, 'payment_pending')
+
+    def test_create_account_requires_accepted_admission(self):
         admission = self._create_admission('second@example.com')
 
         with self.assertRaises(UserError):
@@ -42,10 +65,16 @@ class TestAdmissionWorkflow(TransactionCase):
 
     def test_create_account_creates_student_portal_user(self):
         admission = self._create_admission('accepted@example.com')
-        admission.action_in_progress()
-        admission.action_pass()
-        admission.action_create_account()
+        admission.action_submit()
+        admission.action_start_document_review()
+        admission.document_line_ids.write({'received': True})
+        admission.action_verify_documents()
+        admission.payment_reference = 'PAY-002'
+        admission.action_verify_payment()
+        admission.action_accept()
+        admission.action_register()
 
+        self.assertEqual(admission.state, 'registered')
         self.assertTrue(admission.partner_id.is_student)
         self.assertEqual(admission.user_id.login, 'accepted@example.com')
         self.assertIn(self.env.ref('base.group_portal'), admission.user_id.groups_id)
