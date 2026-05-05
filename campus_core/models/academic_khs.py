@@ -52,7 +52,7 @@ class AcademicKhs(models.Model):
                 ('student_id', '=', record.student_id.id),
                 ('academic_year_id', '=', record.academic_year_id.id),
                 ('term_type', '=', record.term_type),
-                ('state', '=', 'approved'),
+                ('state', 'in', ('approved', 'locked')),
             ])
             if not approved_krs:
                 raise ValidationError(
@@ -66,7 +66,7 @@ class AcademicKhs(models.Model):
                 ('student_id', '=', self.student_id.id),
                 ('academic_year_id', '=', self.academic_year_id.id),
                 ('term_type', '=', self.term_type),
-                ('state', '=', 'approved')
+                ('state', 'in', ('approved', 'locked'))
             ], limit=1)
 
             lines = [(5, 0, 0)]
@@ -125,12 +125,17 @@ class AcademicKhsLine(models.Model):
         ),
     ]
 
+    @api.model
+    def _get_grade_from_score(self, score):
+        for minimum_score, letter, points in self._grade_scale:
+            if score >= minimum_score:
+                return letter, points
+        return 'E', 0.0
+
     @api.depends('numeric_grade')
     def _compute_grade_conversion(self):
         for record in self:
             score = record.numeric_grade or 0.0
-            for minimum_score, letter, points in self._grade_scale:
-                if score >= minimum_score:
-                    record.letter_grade = letter
-                    record.grade_points = points
-                    break
+            letter, points = self._get_grade_from_score(score)
+            record.letter_grade = letter
+            record.grade_points = points
