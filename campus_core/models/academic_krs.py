@@ -66,11 +66,19 @@ class AcademicKrs(models.Model):
 
     _sql_constraints = [
         (
-            'unique_student_academic_period',
-            'unique(student_id, academic_year_id)',
-            'A student can only have one KRS per academic year.'
+            'unique_student_academic_year_term',
+            'unique(student_id, academic_year_id, term_type)',
+            'A student can only have one KRS per academic year and term.',
         ),
     ]
+
+    def init(self):
+        # Previous versions enforced uniqueness only by student/year. Drop the
+        # obsolete database constraint so one KRS per term can be created.
+        self.env.cr.execute(
+            "ALTER TABLE academic_krs "
+            "DROP CONSTRAINT IF EXISTS academic_krs_unique_student_academic_period"
+        )
 
     @api.model
     def _expand_states(self, states, domain, order):
@@ -87,6 +95,45 @@ class AcademicKrs(models.Model):
     def _compute_total_credits(self):
         for record in self:
             record.total_credits = sum(record.line_ids.mapped('credits'))
+
+    def _get_max_credits_allowed(self):
+        self.ensure_one()
+        cgpa = self.student_id.cgpa or 0.0
+        if cgpa >= 3.0:
+            return 24
+        if cgpa >= 2.5:
+            return 21
+        if cgpa >= 2.0:
+            return 18
+        return 15
+
+    def _get_class_capacity(self, class_record):
+        capacities = [
+            capacity for capacity in class_record.schedule_ids.mapped('room_capacity') if capacity
+        ]
+        return min(capacities) if capacities else 0
+
+    def _check_locked_write_allowed(self, vals):
+        protected_fields = {
+            'student_id',
+            'academic_year_id',
+            'term_type',
+            'package_id',
+            'line_ids',
+        }
+        if protected_fields.intersection(vals):
+            locked_records = self.filtered(lambda record: record.state == 'locked')
+            if locked_records:
+                raise ValidationError(_("Locked KRS records cannot be modified."))
+
+    def write(self, vals):
+        self._check_locked_write_allowed(vals)
+        return super().write(vals)
+
+    def unlink(self):
+        if self.filtered(lambda record: record.state == 'locked'):
+            raise ValidationError(_("Locked KRS records cannot be deleted."))
+        return super().unlink()
 
     def action_submit(self):
         for record in self:
@@ -110,9 +157,14 @@ class AcademicKrs(models.Model):
             if not record.advisor_id:
                 raise ValidationError(_("The student must have an assigned Academic Advisor."))
                 
-            # 4. Max SKS Limit (Fixed 24 for now)
-            if record.total_credits > 24:
-                raise ValidationError(_("Total credits cannot exceed 24 SKS."))
+            # 4. Max SKS Limit based on current CGPA.
+            max_credits = record._get_max_credits_allowed()
+            if record.total_credits > max_credits:
+                raise ValidationError(
+                    _("Total credits cannot exceed %(max_credits)s SKS for this student.") % {
+                        'max_credits': max_credits,
+                    }
+                )
                 
             # Validate Line constraints
             taken_subjects = []
@@ -131,13 +183,29 @@ class AcademicKrs(models.Model):
                 taken_subjects.append(subject.id)
                 
                 # 7. Prerequisites Met
-                # TODO: Integrate with KHS/Grades later
-                # if subject.prerequisite_ids:
-                #    check if student passed them
+                missing_prerequisites = subject.prerequisite_ids.filtered(
+                    lambda prerequisite: not self.env['academic.khs.line'].search_count([
+                        ('khs_id.student_id', '=', record.student_id.id),
+                        ('subject_id', '=', prerequisite.id),
+                        ('grade_points', '>=', 2.0),
+                    ])
+                )
+                if missing_prerequisites:
+                    raise ValidationError(
+                        _("Missing prerequisite(s) for %(subject)s: %(prerequisites)s") % {
+                            'subject': subject.name,
+                            'prerequisites': ', '.join(missing_prerequisites.mapped('name')),
+                        }
+                    )
                 
                 # 8. Class Quota
                 class_record = line.class_id
-                total_capacity = sum(class_record.schedule_ids.mapped('room_capacity'))
+                total_capacity = record._get_class_capacity(class_record)
+                if total_capacity <= 0:
+                    raise ValidationError(
+                        _("Class '%s' must have at least one scheduled room with capacity.") %
+                        class_record.name
+                    )
                 enrolled_students = len(class_record.student_line_ids)
                 if enrolled_students >= total_capacity:
                     raise ValidationError(_("Class '%s' has reached its maximum capacity.") % class_record.name)
@@ -195,10 +263,14 @@ class AcademicKrs(models.Model):
 
     def action_lock(self):
         for record in self:
+            if record.state != 'approved':
+                raise ValidationError(_("Only approved KRS records can be locked."))
             record.state = 'locked'
 
     def action_set_draft(self):
         for record in self:
+            if record.state == 'locked':
+                raise ValidationError(_("Locked KRS records cannot be reset to draft."))
             if record.state == 'approved' and not self.env.user.has_group('campus_core.group_campus_administrator'):
                 raise ValidationError(_("Only campus administrators can reset an approved KRS to draft."))
             record.state = 'draft'
@@ -220,3 +292,13 @@ class AcademicKrsLine(models.Model):
             'A class can only appear once in the same KRS.'
         ),
     ]
+
+    def write(self, vals):
+        if self.filtered(lambda line: line.krs_id.state == 'locked'):
+            raise ValidationError(_("Locked KRS lines cannot be modified."))
+        return super().write(vals)
+
+    def unlink(self):
+        if self.filtered(lambda line: line.krs_id.state == 'locked'):
+            raise ValidationError(_("Locked KRS lines cannot be deleted."))
+        return super().unlink()

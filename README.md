@@ -41,8 +41,12 @@ odoo-bin -d test_db --test-enable --stop-after-init -i campus_core,campus_pmb
 ## Business Rules Covered
 
 - KRS records are unique per student, academic year, and term.
-- KRS lines cannot repeat the same subject in one KRS.
+- KRS lines select classes and cannot repeat the same class or subject in one KRS.
 - KRS can only be approved after submission.
+- KRS submission validates active student status, KRS period, academic advisor,
+  program match, prerequisites, credit limits, class capacity, and schedule overlap.
+- KRS approval by the advisor/admin enrolls the student into the selected classes.
+- Locked KRS records are protected from further edits except administrator unlock/reset.
 - KHS records are unique per student, academic year, and term.
 - KHS grades must be between 0 and 100.
 - Room capacity must be greater than zero.

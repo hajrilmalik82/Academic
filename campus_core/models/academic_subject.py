@@ -14,6 +14,14 @@ class AcademicSubject(models.Model):
         ('even', 'Even'),
         ('both', 'Both')
     ], string='Term Type', required=True)
+    prerequisite_ids = fields.Many2many(
+        'academic.subject',
+        'academic_subject_prerequisite_rel',
+        'subject_id',
+        'prerequisite_id',
+        string='Prerequisites',
+        domain="[('program_id', '=', program_id)]",
+    )
     program_id = fields.Many2one(
         'academic.program', string='Program', required=True
     )
