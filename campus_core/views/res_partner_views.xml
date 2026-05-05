@@ -8,9 +8,17 @@
             <xpath expr="//notebook" position="inside">
                 <page string="Academic Info">
                     <group>
-                        <field name="is_student"/>
-                        <field name="nim" invisible="is_student == False"/>
-                        <field name="cgpa" readonly="1" invisible="is_student == False"/>
+                        <group>
+                            <field name="is_student"/>
+                            <field name="nim" invisible="is_student == False"/>
+                            <field name="student_status" invisible="is_student == False"/>
+                            <field name="batch_year" invisible="is_student == False"/>
+                        </group>
+                        <group invisible="is_student == False">
+                            <field name="program_id"/>
+                            <field name="academic_advisor_id"/>
+                            <field name="cgpa" readonly="1"/>
+                        </group>
                     </group>
                 </page>
             </xpath>
@@ -25,5 +33,4 @@
         <field name="context">{'default_is_student': True, 'default_company_type': 'person'}</field>
     </record>
 
-    <menuitem id="menu_academic_student" name="Students" parent="menu_academic_root" action="action_res_partner_student" sequence="10"/>
 </odoo>

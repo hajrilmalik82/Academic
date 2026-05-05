@@ -41,8 +41,10 @@ class AcademicYear(models.Model):
     _name = 'academic.year'
     _description = 'Academic Year'
 
-    name = fields.Char(string='Name', required=True)
-    is_active = fields.Boolean(string='Active', default=True)
+    name = fields.Char(string=_('Name'), required=True)
+    is_active = fields.Boolean(string=_('Active'), default=True)
+    krs_start_date = fields.Date(string=_("KRS Start Date"))
+    krs_end_date = fields.Date(string=_("KRS End Date"))
     company_id = fields.Many2one(
         'res.company', string='Company',
         default=lambda self: self.env.company

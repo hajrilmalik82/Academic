@@ -15,6 +15,7 @@
         'views/campus_facility_views.xml',
         'views/academic_institution_views.xml',
         'views/academic_krs_views.xml',
+        'views/academic_course_package_views.xml',
         'views/academic_khs_views.xml',
         'views/academic_class_views.xml',
         'views/academic_class_schedule_views.xml',
